@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { PresentationData } from "../lib/gemini";
 import { Project } from "./ProjectList";
 import { motion, AnimatePresence } from "motion/react";
@@ -78,14 +78,28 @@ interface SlideViewerProps {
   onBack: () => void;
 }
 
-export function SlideViewer({ presentation, project, onBack }: SlideViewerProps) {
+export function SlideViewer({ presentation: initialPresentation, project, onBack }: SlideViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [presentation, setPresentation] = useState(initialPresentation);
+
+  useEffect(() => {
+    setPresentation(initialPresentation);
+  }, [initialPresentation]);
   const [exporting, setExporting] = useState(false);
   const [selectedModelId, setSelectedModelId] = useState(DESIGN_MODELS[0].id);
+  const [mobileTab, setMobileTab] = useState<'preview' | 'script' | 'caption' | 'edit'>('preview');
   
   const slidesRef = useRef<HTMLDivElement>(null);
 
   const selectedModel = DESIGN_MODELS.find(m => m.id === selectedModelId) || DESIGN_MODELS[0];
+  const currentSlide = presentation.slides[currentIndex];
+
+  const updateSlide = (updates: Partial<typeof currentSlide>) => {
+    setPresentation(prev => ({
+      ...prev,
+      slides: prev.slides.map((s, i) => i === currentIndex ? { ...s, ...updates } : s)
+    }));
+  };
 
   const handleNext = () => {
     if (currentIndex < presentation.slides.length - 1) setCurrentIndex(c => c + 1);
@@ -314,7 +328,6 @@ export function SlideViewer({ presentation, project, onBack }: SlideViewerProps)
     URL.revokeObjectURL(url);
   };
 
-  const currentSlide = presentation.slides[currentIndex];
   const CurrentIcon = getIconForCategory(currentSlide.iconCategory);
 
   return (
@@ -362,7 +375,7 @@ export function SlideViewer({ presentation, project, onBack }: SlideViewerProps)
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Slide Preview Area */}
-        <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 relative overflow-hidden">
+        <div className={`${mobileTab !== 'preview' ? 'hidden' : 'flex'} lg:flex flex-1 flex-col items-center justify-center p-4 md:p-8 relative overflow-hidden`}>
           <motion.div 
             animate={{ y: [0, -5, 0] }}
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
@@ -494,30 +507,66 @@ export function SlideViewer({ presentation, project, onBack }: SlideViewerProps)
         </div>
 
         {/* Sidebar: Script & Extras */}
-        <div className="w-96 border-l border-white/10 bg-[#0a0a0a] flex flex-col shrink-0 overflow-y-auto">
+        <div className={`${mobileTab === 'preview' ? 'hidden' : 'flex'} lg:flex w-full lg:w-96 border-l border-white/10 bg-[#0a0a0a] flex-col shrink-0 overflow-y-auto`}>
           <div className="p-6 border-b border-white/10">
             <h3 className="text-lg font-semibold flex items-center gap-2 text-[#00FF00]">
               <Sparkles className="w-5 h-5" />
-              Roteiro de Fala
+              {mobileTab === 'script' ? 'Roteiro de Fala' : mobileTab === 'caption' ? 'Legenda Instagram' : 'Editar Slide'}
             </h3>
-            <p className="text-sm text-gray-400 mt-1">O que dizer neste slide</p>
+            <p className="text-sm text-gray-400 mt-1">
+              {mobileTab === 'script' ? 'O que dizer neste slide' : mobileTab === 'caption' ? 'Legenda para redes sociais' : 'Edite o conteúdo do slide'}
+            </p>
           </div>
           <div className="p-6 flex-1">
-            <div className="bg-[#141414] p-5 rounded-xl border border-white/5 text-gray-300 leading-relaxed text-sm whitespace-pre-wrap">
-              {currentSlide.script}
-            </div>
-          </div>
-          
-          <div className="p-6 border-t border-white/10 bg-[#141414]">
-            <h3 className="text-sm font-semibold flex items-center gap-2 mb-3 text-pink-400">
-              <Instagram className="w-4 h-4" />
-              Legenda para Instagram
-            </h3>
-            <div className="text-xs text-gray-400 bg-[#0a0a0a] p-4 rounded-lg border border-white/5 whitespace-pre-wrap">
-              {presentation.instagramCaption}
-            </div>
+            {mobileTab === 'edit' ? (
+              <div className="space-y-4">
+                <input 
+                  value={currentSlide.title}
+                  onChange={(e) => updateSlide({ title: e.target.value })}
+                  className="w-full bg-[#141414] border border-white/10 rounded-xl p-3 text-white"
+                  placeholder="Título"
+                />
+                {currentSlide.layout === 'split' ? (
+                  <textarea 
+                    value={currentSlide.content?.join('\n')}
+                    onChange={(e) => updateSlide({ content: e.target.value.split('\n') })}
+                    className="w-full h-40 bg-[#141414] border border-white/10 rounded-xl p-3 text-white"
+                    placeholder="Conteúdo (um por linha)"
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    {currentSlide.gridItems?.map((item, i) => (
+                      <div key={i} className="bg-[#141414] p-3 rounded-xl border border-white/10 space-y-2">
+                        <input 
+                          value={item.title}
+                          onChange={(e) => updateSlide({ gridItems: currentSlide.gridItems?.map((gi, idx) => idx === i ? { ...gi, title: e.target.value } : gi) })}
+                          className="w-full bg-transparent border-b border-white/10 text-white"
+                        />
+                        <textarea 
+                          value={item.description}
+                          onChange={(e) => updateSlide({ gridItems: currentSlide.gridItems?.map((gi, idx) => idx === i ? { ...gi, description: e.target.value } : gi) })}
+                          className="w-full bg-transparent border-b border-white/10 text-white"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-[#141414] p-5 rounded-xl border border-white/5 text-gray-300 leading-relaxed text-sm whitespace-pre-wrap">
+                {mobileTab === 'script' ? currentSlide.script : presentation.instagramCaption}
+              </div>
+            )}
           </div>
         </div>
+      </div>
+      
+      {/* Mobile Tab Bar */}
+      <div className="lg:hidden flex border-t border-white/10 bg-[#0a0a0a]">
+        <button onClick={() => setMobileTab('preview')} className={`flex-1 p-4 text-sm font-medium ${mobileTab === 'preview' ? 'text-white border-t-2 border-[#00FF00]' : 'text-gray-500'}`}>Preview</button>
+        <button onClick={() => setMobileTab('script')} className={`flex-1 p-4 text-sm font-medium ${mobileTab === 'script' ? 'text-white border-t-2 border-[#00FF00]' : 'text-gray-500'}`}>Roteiro</button>
+        <button onClick={() => setMobileTab('caption')} className={`flex-1 p-4 text-sm font-medium ${mobileTab === 'caption' ? 'text-white border-t-2 border-[#00FF00]' : 'text-gray-500'}`}>Instagram</button>
+        <button onClick={() => setMobileTab('edit')} className={`flex-1 p-4 text-sm font-medium ${mobileTab === 'edit' ? 'text-white border-t-2 border-[#00FF00]' : 'text-gray-500'}`}>Editar</button>
       </div>
 
       {/* Hidden container for PDF export */}

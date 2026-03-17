@@ -40,7 +40,7 @@ Além disso, crie uma legenda para Instagram baseada no conteúdo geral da apres
 
   try {
     const response = await defaultAi.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+      model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -119,7 +119,7 @@ Além disso, crie uma legenda para Instagram baseada no conteúdo geral da apres
 
   try {
     const response = await defaultAi.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+      model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
