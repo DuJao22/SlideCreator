@@ -1,8 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Use the default free key for text generation
-const defaultAi = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
 export interface SlideData {
   title: string;
   content: string[];
@@ -20,7 +17,35 @@ export interface PresentationData {
   instagramCaption: string;
 }
 
+// Helper to get key from localStorage
+function getApiKey(): string | null {
+  return localStorage.getItem("gemini_api_key");
+}
+
+// Helper to get AI instance
+function getAiInstance(): GoogleGenAI {
+  const key = getApiKey();
+  if (!key) throw new Error("API Key não configurada. Por favor, configure sua chave nas configurações.");
+  return new GoogleGenAI({ apiKey: key });
+}
+
+// Validation function
+export async function validateApiKey(key: string): Promise<boolean> {
+  try {
+    const ai = new GoogleGenAI({ apiKey: key });
+    await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: "hi",
+    });
+    return true;
+  } catch (e) {
+    console.error("API Key validation failed", e);
+    return false;
+  }
+}
+
 export async function generatePresentation(theme: string, type: string, count: number, retries = 3): Promise<PresentationData> {
+  const ai = getAiInstance();
   const prompt = `Crie uma apresentação sobre o tema "${theme}".
 Tipo de conteúdo: ${type}.
 Quantidade de slides: ${count}.
@@ -31,15 +56,15 @@ MANDATÓRIO: Você DEVE gerar um 'iconCategory' (em inglês) para TODOS os slide
 Para cada slide, escolha um layout ('split' ou 'grid') e forneça:
 - Um título impactante.
 - 'layout': Use 'split' para slides normais (tópicos + imagem). Use 'grid' para slides que apresentam 3 a 6 conceitos, recursos, passos ou benefícios distintos (como um painel de cards).
-- 'content': O conteúdo resumido em tópicos (bullet points). Use apenas se o layout for 'split'.
-- 'gridItems': Uma lista de itens (título e descrição curta). Use apenas se o layout for 'grid'.
+- 'content': O conteúdo resumido em tópicos (bullet points). Use apenas se o layout for 'split'. O conteúdo DEVE ser rico e informativo.
+- 'gridItems': Uma lista de itens (título e descrição curta). Use apenas se o layout for 'grid'. Cada item DEVE ter um título e uma descrição detalhada.
 - 'script': Um roteiro de fala detalhado para o apresentador.
 - 'iconCategory': Uma categoria de ícone em inglês que represente o slide (ex: 'technology', 'business', 'education', 'health', 'finance', 'art', 'science', 'communication', 'data', 'security', 'people', 'growth', 'idea', 'target', 'success'). É OBRIGATÓRIO PARA TODOS OS SLIDES.
 
 Além disso, crie uma legenda para Instagram baseada no conteúdo geral da apresentação, incluindo hashtags.`;
 
   try {
-    const response = await defaultAi.models.generateContent({
+    const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
@@ -98,6 +123,7 @@ Além disso, crie uma legenda para Instagram baseada no conteúdo geral da apres
 }
 
 export async function generatePresentationFromText(text: string, retries = 3): Promise<PresentationData> {
+  const ai = getAiInstance();
   const prompt = `O usuário forneceu o seguinte texto base para uma apresentação:
 
 "${text}"
@@ -110,15 +136,15 @@ MANDATÓRIO: Você DEVE gerar um 'iconCategory' (em inglês) para TODOS os slide
 Para cada slide, escolha um layout ('split' ou 'grid') e forneça:
 - Um título impactante (baseado no texto).
 - 'layout': Use 'split' para slides normais (tópicos + imagem). Use 'grid' para slides que apresentam 3 a 6 conceitos, recursos, passos ou benefícios distintos (como um painel de cards).
-- 'content': O conteúdo resumido em tópicos (bullet points) fiéis ao texto original. Use apenas se o layout for 'split'.
-- 'gridItems': Uma lista de itens (título e descrição curta). Use apenas se o layout for 'grid'.
+- 'content': O conteúdo resumido em tópicos (bullet points) fiéis ao texto original. Use apenas se o layout for 'split'. O conteúdo DEVE ser rico e informativo.
+- 'gridItems': Uma lista de itens (título e descrição curta). Use apenas se o layout for 'grid'. Cada item DEVE ter um título e uma descrição detalhada.
 - 'script': Um roteiro de fala detalhado para o apresentador.
 - 'iconCategory': Uma categoria de ícone em inglês que represente o slide (ex: 'technology', 'business', 'education', 'health', 'finance', 'art', 'science', 'communication', 'data', 'security', 'people', 'growth', 'idea', 'target', 'success'). É OBRIGATÓRIO PARA TODOS OS SLIDES.
 
 Além disso, crie uma legenda para Instagram baseada no conteúdo geral da apresentação, incluindo hashtags.`;
 
   try {
-    const response = await defaultAi.models.generateContent({
+    const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {

@@ -93,6 +93,7 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
 
   const selectedModel = DESIGN_MODELS.find(m => m.id === selectedModelId) || DESIGN_MODELS[0];
   const currentSlide = presentation.slides[currentIndex];
+  console.log("Current Slide Data:", currentSlide);
 
   const updateSlide = (updates: Partial<typeof currentSlide>) => {
     setPresentation(prev => ({

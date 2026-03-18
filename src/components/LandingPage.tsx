@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "motion/react";
-import { Sparkles, Presentation, Zap } from "lucide-react";
+import { Sparkles, Presentation, Zap, Settings } from "lucide-react";
+import { SettingsModal } from "./SettingsModal";
 
 interface LandingPageProps {
   onStart: () => void;
@@ -8,8 +9,20 @@ interface LandingPageProps {
 }
 
 export function LandingPage({ onStart, onViewProjects }: LandingPageProps) {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-5xl mx-auto w-full">
+    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-5xl mx-auto w-full relative">
+      <button 
+        onClick={() => setIsSettingsOpen(true)}
+        className="absolute top-6 right-6 p-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+        title="Configurar API Key"
+      >
+        <Settings className="w-6 h-6 text-gray-400" />
+      </button>
+      
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
