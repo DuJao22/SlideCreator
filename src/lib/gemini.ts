@@ -46,20 +46,20 @@ export async function validateApiKey(key: string): Promise<boolean> {
 
 export async function generatePresentation(theme: string, type: string, count: number, retries = 3): Promise<PresentationData> {
   const ai = getAiInstance();
-  const prompt = `Crie uma apresentação sobre o tema "${theme}".
+  const prompt = `Crie uma apresentação profissional sobre o tema "${theme}".
 Tipo de conteúdo: ${type}.
 Quantidade de slides: ${count}.
-O conteúdo deve ser profissional, direto e estruturado.
+O conteúdo deve ser rico, informativo e estruturado.
 
-MANDATÓRIO: Você DEVE gerar um 'iconCategory' (em inglês) para TODOS os slides, sem exceção (incluindo o slide 1 / título).
+MANDATÓRIO: Você DEVE preencher todo o conteúdo. NÃO deixe campos vazios.
 
-Para cada slide, escolha um layout ('split' ou 'grid') e forneça:
+Para cada slide, forneça:
 - Um título impactante.
-- 'layout': Use 'split' para slides normais (tópicos + imagem). Use 'grid' para slides que apresentam 3 a 6 conceitos, recursos, passos ou benefícios distintos (como um painel de cards).
-- 'content': O conteúdo resumido em tópicos (bullet points). Use apenas se o layout for 'split'. O conteúdo DEVE ser rico e informativo.
-- 'gridItems': Uma lista de itens (título e descrição curta). Use apenas se o layout for 'grid'. Cada item DEVE ter um título e uma descrição detalhada.
+- 'layout': Use 'split' para slides normais (tópicos + imagem). Use 'grid' para slides que apresentam conceitos, recursos, passos ou benefícios distintos.
+- 'content': O conteúdo resumido em tópicos (bullet points). Use para slides do tipo 'split'. DEVE ter pelo menos 3 tópicos.
+- 'gridItems': Uma lista de itens (título e descrição curta). Use para slides do tipo 'grid'. DEVE ter pelo menos 3 itens, cada um com título e descrição detalhada.
 - 'script': Um roteiro de fala detalhado para o apresentador.
-- 'iconCategory': Uma categoria de ícone em inglês que represente o slide (ex: 'technology', 'business', 'education', 'health', 'finance', 'art', 'science', 'communication', 'data', 'security', 'people', 'growth', 'idea', 'target', 'success'). É OBRIGATÓRIO PARA TODOS OS SLIDES.
+- 'iconCategory': Uma categoria de ícone em inglês (ex: 'technology', 'business', 'growth').
 
 Além disso, crie uma legenda para Instagram baseada no conteúdo geral da apresentação, incluindo hashtags.`;
 
@@ -97,9 +97,9 @@ Além disso, crie uma legenda para Instagram baseada no conteúdo geral da apres
                     }
                   },
                   script: { type: Type.STRING },
-                  iconCategory: { type: Type.STRING, description: "MANDATORY: An icon category for this slide in English. Must be provided for ALL slides." }
+                  iconCategory: { type: Type.STRING }
                 },
-                required: ["title", "layout", "script", "iconCategory"]
+                required: ["title", "layout", "script"]
               }
             },
             instagramCaption: { type: Type.STRING }
@@ -131,15 +131,15 @@ export async function generatePresentationFromText(text: string, retries = 3): P
 Você deve preservar a estrutura original (ex: se o usuário dividiu em "Slide 1", "Slide 2", mantenha essa divisão e quantidade).
 Extraia e formate o conteúdo para cada slide, preservando o texto original o máximo possível.
 
-MANDATÓRIO: Você DEVE gerar um 'iconCategory' (em inglês) para TODOS os slides, sem exceção (incluindo o slide 1 / título).
+MANDATÓRIO: Você DEVE preencher todo o conteúdo. NÃO deixe campos vazios.
 
-Para cada slide, escolha um layout ('split' ou 'grid') e forneça:
+Para cada slide, forneça:
 - Um título impactante (baseado no texto).
-- 'layout': Use 'split' para slides normais (tópicos + imagem). Use 'grid' para slides que apresentam 3 a 6 conceitos, recursos, passos ou benefícios distintos (como um painel de cards).
-- 'content': O conteúdo resumido em tópicos (bullet points) fiéis ao texto original. Use apenas se o layout for 'split'. O conteúdo DEVE ser rico e informativo.
-- 'gridItems': Uma lista de itens (título e descrição curta). Use apenas se o layout for 'grid'. Cada item DEVE ter um título e uma descrição detalhada.
+- 'layout': Use 'split' para slides normais (tópicos + imagem). Use 'grid' para slides que apresentam conceitos, recursos, passos ou benefícios distintos.
+- 'content': O conteúdo resumido em tópicos (bullet points) fiéis ao texto original. Use para slides do tipo 'split'. DEVE ter pelo menos 3 tópicos.
+- 'gridItems': Uma lista de itens (título e descrição curta). Use para slides do tipo 'grid'. DEVE ter pelo menos 3 itens, cada um com título e descrição detalhada.
 - 'script': Um roteiro de fala detalhado para o apresentador.
-- 'iconCategory': Uma categoria de ícone em inglês que represente o slide (ex: 'technology', 'business', 'education', 'health', 'finance', 'art', 'science', 'communication', 'data', 'security', 'people', 'growth', 'idea', 'target', 'success'). É OBRIGATÓRIO PARA TODOS OS SLIDES.
+- 'iconCategory': Uma categoria de ícone em inglês (ex: 'technology', 'business', 'growth').
 
 Além disso, crie uma legenda para Instagram baseada no conteúdo geral da apresentação, incluindo hashtags.`;
 
@@ -177,9 +177,9 @@ Além disso, crie uma legenda para Instagram baseada no conteúdo geral da apres
                     }
                   },
                   script: { type: Type.STRING },
-                  iconCategory: { type: Type.STRING, description: "MANDATORY: An icon category for this slide in English. Must be provided for ALL slides." }
+                  iconCategory: { type: Type.STRING }
                 },
-                required: ["title", "layout", "script", "iconCategory"]
+                required: ["title", "layout", "script"]
               }
             },
             instagramCaption: { type: Type.STRING }

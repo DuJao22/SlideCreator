@@ -407,69 +407,49 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
                   </motion.div>
                   
                   {currentSlide.layout === 'grid' ? (
-                    <div className="flex-1 flex flex-col lg:flex-row gap-8 overflow-hidden">
-                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-y-auto pr-2 custom-scrollbar pb-4">
+                    <div className="flex-1 flex flex-col overflow-hidden">
+                      <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 overflow-y-auto pr-2 custom-scrollbar pb-4">
                         {currentSlide.gridItems?.map((item, i) => (
                           <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: i * 0.1 + 0.3, duration: 0.5 }}
                             key={i}
-                            className={`${selectedModel.cardBg} border border-white/10 rounded-2xl p-5 flex flex-col gap-3 hover:bg-white/10 transition-colors relative overflow-hidden group`}
+                            className={`${selectedModel.cardBg} border border-white/5 rounded-2xl p-6 flex flex-col gap-4 hover:bg-white/10 transition-colors`}
                           >
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-150"></div>
-                            <div className={`w-10 h-10 rounded-xl ${selectedModel.iconBg} flex items-center justify-center ${selectedModel.iconColor} mb-2 shrink-0 border border-white/5`}>
-                              <Sparkles className="w-5 h-5" />
+                            <div className={`w-12 h-12 rounded-xl ${selectedModel.iconBg} flex items-center justify-center ${selectedModel.iconColor} shrink-0`}>
+                              <Sparkles className="w-6 h-6" />
                             </div>
-                            <h3 className="text-lg font-semibold text-white leading-tight">{item.title}</h3>
-                            <p className="text-gray-400 text-sm leading-relaxed">{item.description}</p>
+                            <h3 className="text-xl font-semibold text-white leading-tight">{item.title}</h3>
+                            <p className="text-gray-400 text-sm leading-relaxed flex-1">{item.description}</p>
                           </motion.div>
                         ))}
                       </div>
-                      
-                      {/* Grid Layout Icon Area */}
-                      <div className="w-full lg:w-[35%] flex flex-col items-center justify-center shrink-0 hidden md:flex">
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.8, rotate: -2 }}
-                          animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                          transition={{ delay: 0.4, duration: 0.6, type: "spring", bounce: 0.4 }}
-                          className={`relative w-full aspect-square rounded-3xl overflow-hidden border border-white/10 shadow-2xl group flex items-center justify-center ${selectedModel.cardBg}`}
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
-                          <CurrentIcon className={`w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40 ${selectedModel.iconColor} opacity-80 transform group-hover:scale-110 transition-transform duration-700`} />
-                        </motion.div>
-                      </div>
                     </div>
                   ) : (
-                    <div className="flex-1 flex flex-col md:flex-row gap-8 md:gap-16 overflow-hidden">
+                    <div className="flex-1 flex flex-col md:flex-row gap-12 overflow-hidden">
                       <div className="flex-1 flex flex-col justify-center overflow-y-auto pr-4 custom-scrollbar">
-                        <ul className="space-y-6 md:space-y-8">
+                        <ul className="space-y-8">
                           {(currentSlide.content || []).map((item, i) => (
                             <motion.li 
-                              initial={{ opacity: 0, x: -30 }}
+                              initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: i * 0.1 + 0.3, duration: 0.5, ease: "easeOut" }}
                               key={i} 
-                              className="flex items-start gap-4 md:gap-5 text-lg md:text-xl text-gray-300 leading-relaxed font-light"
+                              className="flex items-start gap-5 text-xl md:text-2xl text-gray-200 leading-relaxed font-light"
                             >
-                              <span className={`w-1.5 h-1.5 rounded-full bg-${selectedModel.accent}-400 mt-2.5 md:mt-3.5 shrink-0 shadow-[0_0_10px_rgba(255,255,255,0.3)]`} />
+                              <span className={`w-2 h-2 rounded-full bg-${selectedModel.accent}-500 mt-3.5 shrink-0`} />
                               <span>{item}</span>
                             </motion.li>
                           ))}
                         </ul>
                       </div>
                       
-                      {/* Split Layout Icon Area */}
-                      <div className="w-full md:w-[45%] flex flex-col items-center justify-center shrink-0">
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.8, rotate: -2 }}
-                          animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                          transition={{ delay: 0.4, duration: 0.6, type: "spring", bounce: 0.4 }}
-                          className={`relative w-full aspect-square rounded-3xl overflow-hidden border border-white/10 shadow-2xl group flex items-center justify-center ${selectedModel.cardBg}`}
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
-                          <CurrentIcon className={`w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40 ${selectedModel.iconColor} opacity-80 transform group-hover:scale-110 transition-transform duration-700`} />
-                        </motion.div>
+                      {/* Split Layout Icon Area - Subtle and Professional */}
+                      <div className="w-full md:w-[30%] flex flex-col items-center justify-center shrink-0">
+                        <div className={`w-48 h-48 md:w-64 md:h-64 rounded-3xl flex items-center justify-center ${selectedModel.cardBg} border border-white/5`}>
+                          <CurrentIcon className={`w-24 h-24 md:w-32 md:h-32 ${selectedModel.iconColor} opacity-70`} />
+                        </div>
                       </div>
                     </div>
                   )}
