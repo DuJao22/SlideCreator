@@ -340,8 +340,8 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
           <span>Voltar</span>
         </button>
         
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-white/5 p-1 rounded-lg border border-white/10">
+        <div className="flex items-center gap-2 md:gap-4">
+          <div className="hidden md:flex items-center gap-2 bg-white/5 p-1 rounded-lg border border-white/10">
             <LayoutTemplate className="w-4 h-4 text-gray-400 ml-2" />
             <select 
               value={selectedModelId}
@@ -356,19 +356,19 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
             </select>
           </div>
           
-          <div className="w-px h-6 bg-white/10 mx-2"></div>
+          <div className="hidden md:block w-px h-6 bg-white/10 mx-2"></div>
           
-          <button onClick={handleCopyContent} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm font-medium transition-colors">
+          <button onClick={handleCopyContent} className="flex items-center gap-2 px-2 md:px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm font-medium transition-colors">
             <Copy className="w-4 h-4" />
-            <span className="hidden sm:inline">Copiar Conteúdo</span>
+            <span className="hidden md:inline">Copiar</span>
           </button>
-          <button onClick={handleDownloadHTML} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 text-sm font-medium transition-colors">
+          <button onClick={handleDownloadHTML} className="flex items-center gap-2 px-2 md:px-4 py-2 rounded-lg bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 text-sm font-medium transition-colors">
             <FileCode className="w-4 h-4" />
-            <span className="hidden sm:inline">Exportar HTML</span>
+            <span className="hidden md:inline">HTML</span>
           </button>
-          <button onClick={handleDownloadPDF} disabled={exporting} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#00FF00] text-black hover:bg-[#00CC00] text-sm font-semibold transition-colors disabled:opacity-50">
+          <button onClick={handleDownloadPDF} disabled={exporting} className="flex items-center gap-2 px-2 md:px-4 py-2 rounded-lg bg-[#00FF00] text-black hover:bg-[#00CC00] text-sm font-semibold transition-colors disabled:opacity-50">
             {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            <span className="hidden sm:inline">Baixar PDF</span>
+            <span className="hidden md:inline">PDF</span>
           </button>
         </div>
       </header>
@@ -380,7 +380,7 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
           <motion.div 
             animate={{ y: [0, -5, 0] }}
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-            className={`w-full max-w-6xl min-h-[60vh] md:aspect-video ${selectedModel.bg} ${selectedModel.font} rounded-[2rem] border border-white/10 shadow-[0_0_80px_rgba(79,70,229,0.15)] overflow-hidden relative flex flex-col ring-1 ring-white/5 transition-colors duration-500`}
+            className={`w-full max-w-6xl h-auto min-h-[500px] ${selectedModel.bg} ${selectedModel.font} rounded-[2rem] border border-white/10 shadow-[0_0_80px_rgba(79,70,229,0.15)] relative flex flex-col ring-1 ring-white/5 transition-colors duration-500`}
           >
             {/* Subtle Atmospheric Gradients */}
             <div className="absolute -top-[50%] -left-[10%] w-[70%] h-[70%] rounded-full bg-indigo-900/20 blur-[120px] pointer-events-none"></div>
@@ -393,10 +393,10 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
                 animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
                 exit={{ opacity: 0, scale: 1.05, filter: "blur(8px)" }}
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-0 p-8 md:p-14 flex flex-col z-10 overflow-hidden"
+                className="relative p-8 md:p-14 flex flex-col z-10 flex-1"
               >
                 {/* Slide Content */}
-                <div className="flex-1 flex flex-col h-full">
+                <div className="flex-1 flex flex-col">
                   <motion.div 
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -447,8 +447,12 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
                       
                       {/* Split Layout Icon Area - Subtle and Professional */}
                       <div className="w-full md:w-[30%] flex flex-col items-center justify-center shrink-0">
-                        <div className={`w-48 h-48 md:w-64 md:h-64 rounded-3xl flex items-center justify-center ${selectedModel.cardBg} border border-white/5`}>
-                          <CurrentIcon className={`w-24 h-24 md:w-32 md:h-32 ${selectedModel.iconColor} opacity-70`} />
+                        <div className={`w-48 h-48 md:w-64 md:h-64 rounded-3xl flex items-center justify-center ${selectedModel.cardBg} border border-white/5 overflow-hidden`}>
+                          {currentSlide.imageUrl ? (
+                            <img src={currentSlide.imageUrl} alt={currentSlide.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <CurrentIcon className={`w-24 h-24 md:w-32 md:h-32 ${selectedModel.iconColor} opacity-70`} />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -600,7 +604,11 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
                     
                     <div className="w-[800px] flex items-center justify-center shrink-0">
                       <div className={`w-full aspect-square rounded-[3rem] overflow-hidden border border-[rgba(255,255,255,0.1)] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.6)] flex items-center justify-center ${selectedModel.cardBg}`}>
-                        <SlideIcon className={`w-80 h-80 ${selectedModel.iconColor} opacity-80`} />
+                        {slide.imageUrl ? (
+                          <img src={slide.imageUrl} alt={slide.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        ) : (
+                          <SlideIcon className={`w-80 h-80 ${selectedModel.iconColor} opacity-80`} />
+                        )}
                       </div>
                     </div>
                   </div>

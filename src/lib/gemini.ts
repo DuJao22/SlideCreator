@@ -10,6 +10,7 @@ export interface SlideData {
     title: string;
     description: string;
   }[];
+  imageUrl?: string;
 }
 
 export interface PresentationData {
@@ -60,6 +61,7 @@ Para cada slide, forneça:
 - 'gridItems': Uma lista de itens (título e descrição curta). Use para slides do tipo 'grid'. DEVE ter pelo menos 3 itens, cada um com título e descrição detalhada.
 - 'script': Um roteiro de fala detalhado para o apresentador.
 - 'iconCategory': Uma categoria de ícone em inglês (ex: 'technology', 'business', 'growth').
+- 'imagePrompt': (APENAS PARA O PRIMEIRO SLIDE) Um prompt detalhado para gerar uma imagem profissional que represente o tema do primeiro slide.
 
 Além disso, crie uma legenda para Instagram baseada no conteúdo geral da apresentação, incluindo hashtags.`;
 
@@ -97,7 +99,8 @@ Além disso, crie uma legenda para Instagram baseada no conteúdo geral da apres
                     }
                   },
                   script: { type: Type.STRING },
-                  iconCategory: { type: Type.STRING }
+                  iconCategory: { type: Type.STRING },
+                  imagePrompt: { type: Type.STRING, description: "Prompt for image generation for the first slide" }
                 },
                 required: ["title", "layout", "script"]
               }
@@ -109,7 +112,25 @@ Além disso, crie uma legenda para Instagram baseada no conteúdo geral da apres
       }
     });
 
-    return JSON.parse(response.text || "{}");
+    const data = JSON.parse(response.text || "{}") as PresentationData;
+
+    // Generate image for the first slide if imagePrompt exists
+    if (data.slides[0] && (data.slides[0] as any).imagePrompt) {
+      const imagePrompt = (data.slides[0] as any).imagePrompt;
+      const imageResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: { parts: [{ text: imagePrompt }] },
+      });
+      
+      for (const part of imageResponse.candidates[0].content.parts) {
+        if (part.inlineData) {
+          data.slides[0].imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+          break;
+        }
+      }
+    }
+
+    return data;
   } catch (error: any) {
     if (retries > 0) {
       console.warn(`Presentation generation failed, retrying... (${retries} retries left)`, error);
@@ -140,6 +161,7 @@ Para cada slide, forneça:
 - 'gridItems': Uma lista de itens (título e descrição curta). Use para slides do tipo 'grid'. DEVE ter pelo menos 3 itens, cada um com título e descrição detalhada.
 - 'script': Um roteiro de fala detalhado para o apresentador.
 - 'iconCategory': Uma categoria de ícone em inglês (ex: 'technology', 'business', 'growth').
+- 'imagePrompt': (APENAS PARA O PRIMEIRO SLIDE) Um prompt detalhado para gerar uma imagem profissional que represente o tema do primeiro slide.
 
 Além disso, crie uma legenda para Instagram baseada no conteúdo geral da apresentação, incluindo hashtags.`;
 
@@ -177,7 +199,8 @@ Além disso, crie uma legenda para Instagram baseada no conteúdo geral da apres
                     }
                   },
                   script: { type: Type.STRING },
-                  iconCategory: { type: Type.STRING }
+                  iconCategory: { type: Type.STRING },
+                  imagePrompt: { type: Type.STRING, description: "Prompt for image generation for the first slide" }
                 },
                 required: ["title", "layout", "script"]
               }
@@ -189,7 +212,25 @@ Além disso, crie uma legenda para Instagram baseada no conteúdo geral da apres
       }
     });
 
-    return JSON.parse(response.text || "{}");
+    const data = JSON.parse(response.text || "{}") as PresentationData;
+
+    // Generate image for the first slide if imagePrompt exists
+    if (data.slides[0] && (data.slides[0] as any).imagePrompt) {
+      const imagePrompt = (data.slides[0] as any).imagePrompt;
+      const imageResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: { parts: [{ text: imagePrompt }] },
+      });
+      
+      for (const part of imageResponse.candidates[0].content.parts) {
+        if (part.inlineData) {
+          data.slides[0].imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+          break;
+        }
+      }
+    }
+
+    return data;
   } catch (error: any) {
     if (retries > 0) {
       console.warn(`Presentation generation failed, retrying... (${retries} retries left)`, error);
