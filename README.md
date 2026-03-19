@@ -21,3 +21,6 @@ View your app in AI Studio: https://ai.studio/apps/d21cc848-6994-48ad-b1e5-053a5
 
 
 AIzaSyCvwpGcmYgJflyHlb54cgnfnNVh5SZwaj0
+
+
+https://ai.studio/apps/d21cc848-6994-48ad-b1e5-053a554faf49
