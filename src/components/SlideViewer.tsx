@@ -160,7 +160,25 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
           useCORS: true, 
           backgroundColor: bgColor,
           width: 1920,
-          height: 1080
+          height: 1080,
+          onclone: (clonedDoc) => {
+            // Remove or replace oklab colors in the cloned document
+            const elements = clonedDoc.querySelectorAll('*');
+            elements.forEach((element) => {
+              const style = clonedDoc.defaultView?.getComputedStyle(element);
+              if (!style) return;
+              ['color', 'background-color', 'border-color', 'fill', 'stroke', 'box-shadow', 'text-shadow'].forEach((prop) => {
+                const value = style.getPropertyValue(prop);
+                if (value && (value.includes('oklab') || value.includes('oklch'))) {
+                  if (prop === 'box-shadow' || prop === 'text-shadow') {
+                    (element as HTMLElement).style.setProperty(prop, 'none');
+                  } else {
+                    (element as HTMLElement).style.setProperty(prop, 'black');
+                  }
+                }
+              });
+            });
+          }
         });
         const imgData = canvas.toDataURL('image/jpeg', 1.0);
         
@@ -178,169 +196,132 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
   };
 
   const handleDownloadHTML = () => {
-    let htmlContent = `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${presentation.slides[0]?.title || 'Apresentação SlideAI'}</title>
-  <style>
-    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #09090b; color: white; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; }
-    .slide { display: none; width: 100vw; height: 100vh; flex-direction: column; padding: 6vw; box-sizing: border-box; position: absolute; top: 0; left: 0; opacity: 0; transition: opacity 0.4s ease; }
-    .slide.active { display: flex; opacity: 1; z-index: 10; }
-    
-    /* Background Accents */
-    .bg-accent-1 { position: absolute; top: -50%; left: -10%; width: 70%; height: 70%; border-radius: 50%; background: rgba(49,46,129,0.1); filter: blur(120px); pointer-events: none; z-index: -1; }
-    .bg-accent-2 { position: absolute; bottom: -50%; right: -10%; width: 70%; height: 70%; border-radius: 50%; background: rgba(6,78,59,0.05); filter: blur(120px); pointer-events: none; z-index: -1; }
-    
-    .header { margin-bottom: 5vh; max-width: 80%; }
-    .title { font-size: 3.5vw; font-weight: 600; margin: 0; line-height: 1.2; letter-spacing: -0.02em; }
-    .content-wrapper { display: flex; gap: 6vw; flex: 1; align-items: center; }
-    .text-content { flex: 1; font-size: 1.8vw; line-height: 1.6; color: #d1d5db; font-weight: 300; }
-    .text-content ul { padding-left: 0; list-style: none; margin: 0; }
-    .text-content li { margin-bottom: 3vh; display: flex; align-items: flex-start; gap: 1.5vw; }
-    .bullet { width: 0.8vw; height: 0.8vw; border-radius: 50%; background: #818cf8; margin-top: 1.2vh; flex-shrink: 0; }
-    
-    .icon-content { width: 45%; display: flex; justify-content: center; align-items: center; }
-    .icon-wrapper { width: 20vw; height: 20vw; border-radius: 4vw; background: rgba(255,255,255,0.05); display: flex; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 35px 60px -15px rgba(0,0,0,0.6); }
-    .icon-wrapper svg { width: 10vw; height: 10vw; color: #818cf8; }
-    
-    /* Grid Layout Styles */
-    .grid-wrapper { display: flex; gap: 4vw; flex: 1; align-items: center; }
-    .grid-container { flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 2vw; }
-    .grid-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 1.5vw; padding: 2vw; display: flex; flex-col; gap: 1vw; }
-    .grid-icon { width: 3vw; height: 3vw; border-radius: 0.8vw; background: rgba(99,102,241,0.2); display: flex; align-items: center; justify-content: center; color: #818cf8; font-size: 1.5vw; font-weight: bold; }
-    .grid-title { font-size: 1.5vw; font-weight: 600; margin: 0; color: white; }
-    .grid-desc { font-size: 1.1vw; color: #9ca3af; margin: 0; line-height: 1.5; }
-    .grid-icon-content { width: 35%; display: flex; justify-content: center; align-items: center; }
-    
-    .footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; font-size: 1vw; color: #6b7280; text-transform: uppercase; letter-spacing: 0.1em; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 3vh; font-weight: 500; }
-    .footer-brand { display: flex; align-items: center; gap: 1vw; }
-    .footer-dot { width: 0.8vw; height: 0.8vw; border-radius: 50%; background: #6366f1; }
-    
-    .controls { position: fixed; bottom: 3vh; right: 3vh; z-index: 100; display: flex; gap: 1vw; opacity: 0.3; transition: opacity 0.3s; }
-    .controls:hover { opacity: 1; }
-    button { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 1.5vh 2vw; border-radius: 1vw; cursor: pointer; font-size: 1vw; backdrop-filter: blur(10px); transition: all 0.2s; }
-    button:hover { background: rgba(255,255,255,0.2); transform: translateY(-2px); }
-  </style>
-</head>
-<body>
-  <div class="bg-accent-1"></div>
-  <div class="bg-accent-2"></div>
-`;
+    let htmlContent = '<!DOCTYPE html>\n' +
+      '<html lang="pt-BR">\n' +
+      '<head>\n' +
+      '  <meta charset="UTF-8">\n' +
+      '  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+      '  <title>' + (presentation.slides[0]?.title || 'Apresentação SlideAI') + '</title>\n' +
+      '  <style>\n' +
+      '    :root { --bg: #050505; --card-bg: rgba(255, 255, 255, 0.05); --accent: #818cf8; --text: #ffffff; --text-muted: #9ca3af; }\n' +
+      '    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: var(--bg); color: var(--text); font-family: \'Inter\', system-ui, -apple-system, sans-serif; overflow: hidden; }\n' +
+      '    .slide { display: none; width: 100vw; height: 100vh; flex-direction: column; padding: 4rem; box-sizing: border-box; position: absolute; top: 0; left: 0; opacity: 0; transition: opacity 0.5s ease; }\n' +
+      '    .slide.active { display: flex; opacity: 1; z-index: 10; }\n' +
+      '    .header { margin-bottom: 3rem; }\n' +
+      '    .title { font-size: 3.5rem; font-weight: 700; margin: 0; line-height: 1.1; letter-spacing: -0.02em; }\n' +
+      '    .content-wrapper { display: flex; gap: 4rem; flex: 1; align-items: center; }\n' +
+      '    .text-content { flex: 1; font-size: 1.5rem; line-height: 1.6; color: var(--text-muted); font-weight: 300; }\n' +
+      '    .text-content ul { padding-left: 0; list-style: none; margin: 0; }\n' +
+      '    .text-content li { margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 1.5rem; }\n' +
+      '    .bullet { width: 0.8rem; height: 0.8rem; border-radius: 50%; background: var(--accent); margin-top: 0.6rem; flex-shrink: 0; }\n' +
+      '    .icon-content { width: 40%; display: flex; justify-content: center; align-items: center; }\n' +
+      '    .icon-wrapper { width: 20vw; height: 20vw; max-width: 350px; max-height: 350px; border-radius: 2rem; background: var(--card-bg); display: flex; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 40px rgba(0,0,0,0.4); overflow: hidden; }\n' +
+      '    .icon-wrapper svg { width: 50%; height: 50%; color: var(--accent); }\n' +
+      '    .grid-wrapper { display: flex; gap: 3rem; flex: 1; align-items: center; }\n' +
+      '    .grid-container { flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }\n' +
+      '    .grid-item { background: var(--card-bg); border: 1px solid rgba(255,255,255,0.05); border-radius: 1.5rem; padding: 2rem; display: flex; flex-direction: column; gap: 1rem; }\n' +
+      '    .grid-icon { width: 3rem; height: 3rem; border-radius: 1rem; background: rgba(99,102,241,0.2); display: flex; align-items: center; justify-content: center; color: var(--accent); font-weight: bold; margin-bottom: 0.5rem; }\n' +
+      '    .grid-title { font-size: 1.5rem; font-weight: 600; margin: 0; color: var(--text); }\n' +
+      '    .grid-desc { font-size: 1.1rem; color: var(--text-muted); margin: 0; line-height: 1.5; }\n' +
+      '    .footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.15em; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 2rem; font-weight: 500; }\n' +
+      '    @media (max-width: 1024px) {\n' +
+      '      .slide { padding: 2rem; }\n' +
+      '      .title { font-size: 2.5rem; }\n' +
+      '      .content-wrapper, .grid-wrapper { flex-direction: column; }\n' +
+      '      .text-content, .icon-content, .grid-container, .grid-wrapper > div:last-child { width: 100%; }\n' +
+      '      .icon-wrapper { width: 50vw; height: 50vw; }\n' +
+      '      .grid-container { grid-template-columns: 1fr; }\n' +
+      '    }\n' +
+      '    .controls { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; gap: 1rem; background: rgba(255,255,255,0.05); padding: 0.5rem; border-radius: 9999px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }\n' +
+      '    button { background: var(--accent); border: none; color: white; padding: 1rem 2rem; border-radius: 9999px; cursor: pointer; font-size: 1.1rem; font-weight: 600; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }\n' +
+      '    button:hover { background: #6366f1; transform: translateY(-2px); }\n' +
+      '    button:disabled { background: #374151; cursor: not-allowed; opacity: 0.6; }\n' +
+      '  </style>\n' +
+      '</head>\n' +
+      '<body>\n';
 
     presentation.slides.forEach((slide, i) => {
       const isGrid = slide.layout === 'grid';
       
+      const iconOrImageHtml = slide.imageUrl ?
+        '<img src="' + slide.imageUrl + '" style="width: 100%; height: 100%; object-fit: cover;" referrerPolicy="no-referrer" />' :
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkles"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>';
+
       let contentHtml = '';
       
       if (isGrid && slide.gridItems) {
-        const gridItemsHtml = slide.gridItems.map((item, idx) => `
-          <div class="grid-item">
-            <div class="grid-icon">✨</div>
-            <h3 class="grid-title">${item.title}</h3>
-            <p class="grid-desc">${item.description}</p>
-          </div>
-        `).join('');
+        const gridItemsHtml = slide.gridItems.map((item) => 
+          '<div class="grid-item">' +
+          '  <div class="grid-icon">✨</div>' +
+          '  <h3 class="grid-title">' + item.title + '</h3>' +
+          '  <p class="grid-desc">' + item.description + '</p>' +
+          '</div>'
+        ).join('');
         
-        const iconHtml = `
-          <div class="grid-icon-content">
-            <div class="icon-wrapper">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkles"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
-            </div>
-          </div>`;
-        
-        contentHtml = `
-          <div class="grid-wrapper">
-            <div class="grid-container">
-              ${gridItemsHtml}
-            </div>
-            ${iconHtml}
-          </div>
-        `;
+        contentHtml = '<div class="grid-wrapper">' +
+          '<div class="grid-container">' + gridItemsHtml + '</div>' +
+          '<div class="icon-content"><div class="icon-wrapper">' + iconOrImageHtml + '</div></div>' +
+          '</div>';
       } else {
-        const iconHtml = `
-          <div class="icon-content">
-            <div class="icon-wrapper">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkles"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
-            </div>
-          </div>`;
-        const listHtml = (slide.content || []).map(item => `<li><div class="bullet"></div><span>${item}</span></li>`).join('');
+        const listHtml = (slide.content || []).map(item => '<li><div class="bullet"></div><span>' + item + '</span></li>').join('');
         
-        contentHtml = `
-          <div class="content-wrapper">
-            <div class="text-content">
-              <ul>${listHtml}</ul>
-            </div>
-            ${iconHtml}
-          </div>
-        `;
+        contentHtml = '<div class="content-wrapper">' +
+          '<div class="text-content"><ul>' + listHtml + '</ul></div>' +
+          '<div class="icon-content"><div class="icon-wrapper">' + iconOrImageHtml + '</div></div>' +
+          '</div>';
       }
 
-      htmlContent += `
-  <div class="slide ${i === 0 ? 'active' : ''}" id="slide-${i}">
-    <div class="header">
-      <h2 class="title">${slide.title}</h2>
-    </div>
-    ${contentHtml}
-    <div class="footer">
-      <div class="footer-brand"><div class="footer-dot"></div><span>SlideAI Professional</span></div>
-      <span>${i + 1} / ${presentation.slides.length}</span>
-    </div>
-  </div>`;
+      htmlContent += '<div class="slide ' + (i === 0 ? 'active' : '') + '" id="slide-' + i + '">' +
+        '<div class="header"><h2 class="title">' + slide.title + '</h2></div>' +
+        contentHtml +
+        '<div class="footer">' +
+        '  <span>SlideAI Professional</span>' +
+        '  <span>' + (i + 1) + ' / ' + presentation.slides.length + '</span>' +
+        '</div>' +
+        '</div>';
     });
 
-    htmlContent += `
-  <div class="controls">
-    <button onclick="prevSlide()">&#10094; Anterior</button>
-    <button onclick="nextSlide()">Próximo &#10095;</button>
-  </div>
-  
-  <script>
-    let currentSlide = 0;
-    const totalSlides = ${presentation.slides.length};
-    const slides = document.querySelectorAll('.slide');
-
-    function showSlide(index) {
-      slides.forEach(s => s.classList.remove('active'));
-      slides[index].classList.add('active');
-    }
-
-    function nextSlide() {
-      if (currentSlide < totalSlides - 1) {
-        currentSlide++;
-        showSlide(currentSlide);
-      }
-    }
-
-    function prevSlide() {
-      if (currentSlide > 0) {
-        currentSlide--;
-        showSlide(currentSlide);
-      }
-    }
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowRight' || e.key === 'Space') nextSlide();
-      if (e.key === 'ArrowLeft') prevSlide();
-    });
-    
-    // Click to advance
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.controls')) {
-        nextSlide();
-      }
-    });
-  </script>
-</body>
-</html>`;
+    htmlContent += '<div class="controls">' +
+      '<button id="prevBtn" onclick="prevSlide()" disabled>Anterior</button>' +
+      '<button id="nextBtn" onclick="nextSlide()">Próximo</button>' +
+      '</div>' +
+      '<script>' +
+      '  let currentSlide = 0;' +
+      '  const totalSlides = ' + presentation.slides.length + ';' +
+      '  const slides = document.querySelectorAll(".slide");' +
+      '  const prevBtn = document.getElementById("prevBtn");' +
+      '  const nextBtn = document.getElementById("nextBtn");' +
+      '  function updateButtons() {' +
+      '    prevBtn.disabled = currentSlide === 0;' +
+      '    nextBtn.disabled = currentSlide === totalSlides - 1;' +
+      '  }' +
+      '  function showSlide(index) {' +
+      '    slides.forEach(s => s.classList.remove("active"));' +
+      '    slides[index].classList.add("active");' +
+      '    updateButtons();' +
+      '  }' +
+      '  function nextSlide() {' +
+      '    if (currentSlide < totalSlides - 1) {' +
+      '      currentSlide++;' +
+      '      showSlide(currentSlide);' +
+      '    }' +
+      '  }' +
+      '  function prevSlide() {' +
+      '    if (currentSlide > 0) {' +
+      '      currentSlide--;' +
+      '      showSlide(currentSlide);' +
+      '    }' +
+      '  }' +
+      '  updateButtons();' +
+      '</script>' +
+      '</body>' +
+      '</html>';
 
     const blob = new Blob([htmlContent], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${presentation.slides[0]?.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'apresentacao'}.html`;
+    a.download = (presentation.slides[0]?.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'apresentacao') + '.html';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -407,10 +388,10 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentIndex}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
                 className="relative p-8 md:p-14 flex flex-col z-10 flex-1"
               >
                 {/* Slide Content */}
@@ -486,20 +467,20 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
             </AnimatePresence>
           </motion.div>
 
-          {/* Navigation Controls */}
-          <div className="flex items-center gap-6 mt-8">
+          {/* Navigation Controls - Floating Bar */}
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-white/10 backdrop-blur-md p-2 rounded-full shadow-2xl border border-white/10 z-50">
             <button 
               onClick={handlePrev} 
               disabled={currentIndex === 0}
-              className="p-3 rounded-full bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-4 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
-            <span className="font-mono text-lg">{currentIndex + 1} / {presentation.slides.length}</span>
+            <span className="font-mono text-sm font-medium px-2">{currentIndex + 1} / {presentation.slides.length}</span>
             <button 
               onClick={handleNext} 
               disabled={currentIndex === presentation.slides.length - 1}
-              className="p-3 rounded-full bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-4 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <ChevronRight className="w-6 h-6" />
             </button>
