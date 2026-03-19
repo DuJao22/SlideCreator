@@ -111,6 +111,30 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
     if (currentIndex > 0) setCurrentIndex(c => c - 1);
   };
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        setCleanView(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreenAndCleanView = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+      });
+      setCleanView(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+      setCleanView(false);
+    }
+  };
+
   const handleCopyContent = () => {
     let content = `Apresentação gerada por SlideAI\n\n`;
     presentation.slides.forEach((slide, i) => {
@@ -220,12 +244,12 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
       '  <title>' + (presentation.slides[0]?.title || 'Apresentação SlideAI') + '</title>\n' +
       '  <style>\n' +
       '    :root { --bg: #050505; --card-bg: rgba(255, 255, 255, 0.05); --accent: #818cf8; --text: #ffffff; --text-muted: #9ca3af; }\n' +
-      '    body, html { margin: 0; padding: 0; width: 100%; background-color: var(--bg); color: var(--text); font-family: \'Inter\', system-ui, -apple-system, sans-serif; }\n' +
-      '    .slide { display: none; width: 100%; min-height: 100vh; flex-direction: column; padding: 4rem; box-sizing: border-box; opacity: 0; transition: opacity 0.5s ease; }\n' +
+      '    body, html { margin: 0; padding: 0; width: 100%; min-height: 100vh; height: auto; background-color: var(--bg); color: var(--text); font-family: \'Inter\', system-ui, -apple-system, sans-serif; overflow-y: auto; }\n' +
+      '    .slide { display: none; width: 100%; min-height: 100vh; height: auto; flex-direction: column; padding: 4rem; box-sizing: border-box; opacity: 0; transition: opacity 0.5s ease; }\n' +
       '    .slide.active { display: flex; opacity: 1; z-index: 10; }\n' +
       '    .header { margin-bottom: 3rem; }\n' +
       '    .title { font-size: 3.5rem; font-weight: 700; margin: 0; line-height: 1.1; letter-spacing: -0.02em; }\n' +
-      '    .content-wrapper { display: flex; gap: 4rem; flex: 1; align-items: center; }\n' +
+      '    .content-wrapper { display: flex; gap: 4rem; flex: 1; align-items: flex-start; }\n' +
       '    .text-content { flex: 1; font-size: 1.5rem; line-height: 1.6; color: var(--text-muted); font-weight: 300; }\n' +
       '    .text-content ul { padding-left: 0; list-style: none; margin: 0; }\n' +
       '    .text-content li { margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 1.5rem; }\n' +
@@ -233,7 +257,7 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
       '    .icon-content { width: 40%; display: flex; justify-content: center; align-items: center; }\n' +
       '    .icon-wrapper { width: 20vw; height: 20vw; max-width: 350px; max-height: 350px; border-radius: 2rem; background: var(--card-bg); display: flex; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 40px rgba(0,0,0,0.4); overflow: hidden; }\n' +
       '    .icon-wrapper svg { width: 50%; height: 50%; color: var(--accent); }\n' +
-      '    .grid-wrapper { display: flex; gap: 3rem; flex: 1; align-items: center; }\n' +
+      '    .grid-wrapper { display: flex; gap: 3rem; flex: 1; align-items: flex-start; }\n' +
       '    .grid-container { flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }\n' +
       '    .grid-item { background: var(--card-bg); border: 1px solid rgba(255,255,255,0.05); border-radius: 1.5rem; padding: 2rem; display: flex; flex-direction: column; gap: 1rem; }\n' +
       '    .grid-icon { width: 3rem; height: 3rem; border-radius: 1rem; background: rgba(99,102,241,0.2); display: flex; align-items: center; justify-content: center; color: var(--accent); font-weight: bold; margin-bottom: 0.5rem; }\n' +
@@ -357,7 +381,7 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
           </button>
           
           <div className="flex items-center gap-2 md:gap-4">
-            <button onClick={() => setCleanView(!cleanView)} className="flex items-center gap-2 px-2 md:px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm font-medium transition-colors">
+            <button onClick={toggleFullscreenAndCleanView} className="flex items-center gap-2 px-2 md:px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm font-medium transition-colors">
               {cleanView ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               <span className="hidden md:inline">{cleanView ? 'Sair do Clean View' : 'Clean View'}</span>
             </button>
@@ -419,15 +443,22 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
           <motion.div 
             animate={{ y: [0, -5, 0] }}
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-            className={`w-full max-w-6xl h-auto min-h-[500px] ${selectedModel.bg} ${selectedModel.font} rounded-[2rem] border border-white/10 shadow-[0_0_80px_rgba(79,70,229,0.15)] relative flex flex-col ring-1 ring-white/5 transition-colors duration-500`}
+            className={`w-full max-w-6xl h-auto min-h-[500px] ${selectedModel.bg} ${selectedModel.font} rounded-[2rem] border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.5)] relative flex flex-col ring-1 ring-white/5 transition-colors duration-500`}
           >
-            {/* Subtle Atmospheric Gradients */}
-            <div className="absolute -top-[50%] -left-[10%] w-[70%] h-[70%] rounded-full bg-indigo-900/20 blur-[120px] pointer-events-none"></div>
-            <div className="absolute -bottom-[50%] -right-[10%] w-[70%] h-[70%] rounded-full bg-emerald-900/10 blur-[120px] pointer-events-none"></div>
+            {/* Professional Background Image */}
+            <div className="absolute inset-0 rounded-[2rem] overflow-hidden opacity-20">
+              <img 
+                src="https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80" 
+                alt="Background" 
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-gradient-to-br from-black/80 to-black/40"></div>
+            </div>
 
             <AnimatePresence mode="wait">
               <motion.div
-                key={currentIndex}
+                key={`${currentIndex}-${currentSlide.layout}`}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -440,9 +471,23 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1, duration: 0.3 }}
-                    className="mb-8 md:mb-12 max-w-4xl shrink-0"
+                    className="mb-8 md:mb-12 max-w-4xl shrink-0 flex justify-between items-center"
                   >
                     <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-white tracking-tight leading-tight">{currentSlide.title}</h2>
+                    <select 
+                      value={currentSlide.layout || 'split'}
+                      onChange={(e) => {
+                        console.log("Layout changed to:", e.target.value);
+                        const newSlides = [...presentation.slides];
+                        newSlides[currentIndex] = { ...newSlides[currentIndex], layout: e.target.value as 'split' | 'grid' };
+                        console.log("New slides:", newSlides);
+                        setPresentation(prev => ({ ...prev, slides: newSlides }));
+                      }}
+                      className="bg-white/10 text-white text-sm rounded-lg px-3 py-2 border border-white/10 outline-none cursor-pointer"
+                    >
+                      <option value="split">Split</option>
+                      <option value="grid">Grid</option>
+                    </select>
                   </motion.div>
                   
                   {currentSlide.layout === 'grid' ? (

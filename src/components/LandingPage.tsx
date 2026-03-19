@@ -6,9 +6,10 @@ import { SettingsModal } from "./SettingsModal";
 interface LandingPageProps {
   onStart: () => void;
   onViewProjects: () => void;
+  onCreateCreative: () => void;
 }
 
-export function LandingPage({ onStart, onViewProjects }: LandingPageProps) {
+export function LandingPage({ onStart, onViewProjects, onCreateCreative }: LandingPageProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   return (
@@ -60,6 +61,12 @@ export function LandingPage({ onStart, onViewProjects }: LandingPageProps) {
             className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-[#141414] border border-white/10 text-white font-semibold rounded-2xl hover:bg-white/5 transition-colors w-full sm:w-auto"
           >
             <span className="text-lg">Meus Projetos</span>
+          </button>
+          <button
+            onClick={onCreateCreative}
+            className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-[#141414] border border-white/10 text-white font-semibold rounded-2xl hover:bg-white/5 transition-colors w-full sm:w-auto"
+          >
+            <span className="text-lg">Criar Criativo</span>
           </button>
         </div>
 

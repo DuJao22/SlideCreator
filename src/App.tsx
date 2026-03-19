@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { LandingPage } from "./components/LandingPage";
 import { GeneratorForm } from "./components/GeneratorForm";
 import { SlideViewer } from "./components/SlideViewer";
+import { CreativeGenerator } from "./components/CreativeGenerator";
+import { CreativeViewer } from "./components/CreativeViewer";
 import { ProjectList, Project } from "./components/ProjectList";
-import { PresentationData } from "./lib/gemini";
+import { PresentationData, CreativeData } from "./lib/gemini";
 import { set } from "idb-keyval";
 
 // Declare the global aistudio object
@@ -17,9 +19,15 @@ declare global {
 }
 
 export default function App() {
-  const [view, setView] = useState<"landing" | "generator" | "viewer" | "projects">("landing");
+  const [view, setView] = useState<"landing" | "generator" | "viewer" | "projects" | "creative" | "creativeViewer">("landing");
   const [presentation, setPresentation] = useState<PresentationData | null>(null);
+  const [creative, setCreative] = useState<CreativeData | null>(null);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
+
+  const handleGenerateCreative = (data: CreativeData) => {
+    setCreative(data);
+    setView("creativeViewer");
+  };
 
   const handleGenerate = async (data: PresentationData, title: string) => {
     const newProject: Project = {
@@ -54,6 +62,7 @@ export default function App() {
           <LandingPage 
             onStart={() => setView("generator")} 
             onViewProjects={() => setView("projects")}
+            onCreateCreative={() => setView("creative")}
           />
         )}
         {view === "projects" && (
@@ -68,11 +77,22 @@ export default function App() {
             onGenerate={handleGenerate}
           />
         )}
+        {view === "creative" && (
+          <CreativeGenerator
+            onGenerate={handleGenerateCreative}
+          />
+        )}
         {view === "viewer" && presentation && (
           <SlideViewer
             presentation={presentation}
             project={currentProject}
             onBack={() => setView("projects")}
+          />
+        )}
+        {view === "creativeViewer" && creative && (
+          <CreativeViewer
+            creative={creative}
+            onBack={() => setView("creative")}
           />
         )}
       </main>

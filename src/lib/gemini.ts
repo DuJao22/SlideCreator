@@ -18,9 +18,103 @@ export interface PresentationData {
   instagramCaption: string;
 }
 
+export interface CreativeData {
+  title: string;
+  description: string;
+  imageUrl: string;
+  instagramCaption: string;
+  aspectRatio: string;
+}
+
+// ... existing code ...
+
 // Helper to get key from localStorage
 function getApiKey(): string | null {
   return localStorage.getItem("gemini_api_key");
+}
+
+export async function generateCreative(theme: string, aspectRatio: string = "1:1", retries = 3): Promise<CreativeData> {
+  const ai = getAiInstance();
+  const prompt = `Crie um criativo profissional para redes sociais baseado no tema: "${theme}".
+  
+  MANDATÓRIO: Você DEVE preencher todo o conteúdo. NÃO deixe campos vazios.
+  
+  Forneça:
+  - Um título impactante.
+  - Uma descrição curta e persuasiva.
+  - Um prompt detalhado para gerar uma imagem de fundo profissional que represente o tema.
+  - Uma legenda para Instagram, incluindo hashtags.`;
+
+  try {
+    const response = await withTimeout(
+      ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              description: { type: Type.STRING },
+              imagePrompt: { type: Type.STRING },
+              instagramCaption: { type: Type.STRING }
+            },
+            required: ["title", "description", "imagePrompt", "instagramCaption"]
+          }
+        }
+      }),
+      60000,
+      "Tempo limite excedido ao gerar criativo."
+    );
+
+    const data = JSON.parse(response.text || "{}");
+    
+    // Generate image
+    let imageUrl = "";
+    try {
+      const imageResponse = await withTimeout(
+        ai.models.generateContent({
+          model: 'gemini-3.1-flash-image-preview',
+          contents: { parts: [{ text: data.imagePrompt }] },
+          config: {
+            imageConfig: {
+              aspectRatio: aspectRatio,
+              imageSize: "1K"
+            }
+          }
+        }),
+        30000,
+        "Tempo limite excedido ao gerar imagem."
+      );
+      
+      for (const part of imageResponse.candidates[0].content.parts) {
+        if (part.inlineData) {
+          imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+          break;
+        }
+      }
+    } catch (imageError) {
+      console.warn("Image generation failed, skipping...", imageError);
+    }
+
+    return {
+      title: data.title,
+      description: data.description,
+      imageUrl,
+      instagramCaption: data.instagramCaption,
+      aspectRatio
+    };
+  } catch (error: any) {
+    if (retries > 0) {
+      console.warn(`Creative generation failed, retrying... (${retries} retries left)`, error);
+      const isRateLimit = error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('RESOURCE_EXHAUSTED');
+      const delay = isRateLimit ? 15000 : 2000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return generateCreative(theme, aspectRatio, retries - 1);
+    }
+    throw error;
+  }
 }
 
 // Helper to get AI instance
