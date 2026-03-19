@@ -141,9 +141,27 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
 
       const slideElements = slidesRef.current.querySelectorAll('.pdf-slide');
       
+      // Helper to get hex color from tailwind class
+      const getBackgroundColor = (bgClass: string) => {
+        if (bgClass.includes('#')) {
+          return bgClass.match(/#([0-9a-fA-F]{6})/)?.[0] || '#141414';
+        }
+        if (bgClass.includes('zinc-950')) return '#09090b';
+        if (bgClass.includes('slate-950')) return '#020617';
+        return '#141414';
+      };
+
+      const bgColor = getBackgroundColor(selectedModel.bg);
+      
       for (let i = 0; i < slideElements.length; i++) {
         const el = slideElements[i] as HTMLElement;
-        const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: selectedModel.bg.replace('bg-[', '').replace(']', '').replace('bg-', '') || '#141414' });
+        const canvas = await html2canvas(el, { 
+          scale: 2, 
+          useCORS: true, 
+          backgroundColor: bgColor,
+          width: 1920,
+          height: 1080
+        });
         const imgData = canvas.toDataURL('image/jpeg', 1.0);
         
         if (i > 0) pdf.addPage();
@@ -153,7 +171,7 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
       pdf.save("apresentacao-slideai.pdf");
     } catch (error) {
       console.error("PDF Export failed", error);
-      alert("Erro ao exportar PDF.");
+      alert("Erro ao exportar PDF. Tente novamente.");
     } finally {
       setExporting(false);
     }
@@ -389,18 +407,18 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentIndex}
-                initial={{ opacity: 0, scale: 0.95, filter: "blur(8px)" }}
-                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                exit={{ opacity: 0, scale: 1.05, filter: "blur(8px)" }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
                 className="relative p-8 md:p-14 flex flex-col z-10 flex-1"
               >
                 {/* Slide Content */}
                 <div className="flex-1 flex flex-col">
                   <motion.div 
-                    initial={{ opacity: 0, y: -20 }}
+                    initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2, duration: 0.5 }}
+                    transition={{ delay: 0.1, duration: 0.3 }}
                     className="mb-8 md:mb-12 max-w-4xl shrink-0"
                   >
                     <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-white tracking-tight leading-tight">{currentSlide.title}</h2>
@@ -408,21 +426,18 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
                   
                   {currentSlide.layout === 'grid' ? (
                     <div className="flex-1 flex flex-col overflow-hidden">
-                      <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 overflow-y-auto pr-2 custom-scrollbar pb-4">
+                      <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 overflow-y-auto pr-2 custom-scrollbar pb-4">
                         {currentSlide.gridItems?.map((item, i) => (
-                          <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.1 + 0.3, duration: 0.5 }}
+                          <div
                             key={i}
-                            className={`${selectedModel.cardBg} border border-white/5 rounded-2xl p-6 flex flex-col gap-4 hover:bg-white/10 transition-colors`}
+                            className={`${selectedModel.cardBg} border border-white/5 rounded-2xl p-4 flex flex-col gap-3 hover:bg-white/10 transition-colors`}
                           >
-                            <div className={`w-12 h-12 rounded-xl ${selectedModel.iconBg} flex items-center justify-center ${selectedModel.iconColor} shrink-0`}>
-                              <Sparkles className="w-6 h-6" />
+                            <div className={`w-10 h-10 rounded-xl ${selectedModel.iconBg} flex items-center justify-center ${selectedModel.iconColor} shrink-0`}>
+                              <Sparkles className="w-5 h-5" />
                             </div>
-                            <h3 className="text-xl font-semibold text-white leading-tight">{item.title}</h3>
-                            <p className="text-gray-400 text-sm leading-relaxed flex-1">{item.description}</p>
-                          </motion.div>
+                            <h3 className="text-lg font-semibold text-white leading-tight">{item.title}</h3>
+                            <p className="text-gray-400 text-xs leading-relaxed flex-1">{item.description}</p>
+                          </div>
                         ))}
                       </div>
                     </div>

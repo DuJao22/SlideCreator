@@ -45,6 +45,14 @@ export async function validateApiKey(key: string): Promise<boolean> {
   }
 }
 
+// Helper to wrap promise with timeout
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(message)), ms))
+  ]);
+}
+
 export async function generatePresentation(theme: string, type: string, count: number, retries = 3): Promise<PresentationData> {
   const ai = getAiInstance();
   const prompt = `Crie uma apresentação profissional sobre o tema "${theme}".
@@ -66,67 +74,79 @@ Para cada slide, forneça:
 Além disso, crie uma legenda para Instagram baseada no conteúdo geral da apresentação, incluindo hashtags.`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            slides: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING },
-                  layout: { type: Type.STRING, description: "Either 'split' or 'grid'" },
-                  content: {
-                    type: Type.ARRAY,
-                    items: { type: Type.STRING },
-                    description: "Bullet points for 'split' layout"
+    const response = await withTimeout(
+      ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              slides: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    title: { type: Type.STRING },
+                    layout: { type: Type.STRING, description: "Either 'split' or 'grid'" },
+                    content: {
+                      type: Type.ARRAY,
+                      items: { type: Type.STRING },
+                      description: "Bullet points for 'split' layout"
+                    },
+                    gridItems: {
+                      type: Type.ARRAY,
+                      description: "Items for the 'grid' layout",
+                      items: {
+                        type: Type.OBJECT,
+                        properties: {
+                          title: { type: Type.STRING },
+                          description: { type: Type.STRING }
+                        },
+                        required: ["title", "description"]
+                      }
+                    },
+                    script: { type: Type.STRING },
+                    iconCategory: { type: Type.STRING },
+                    imagePrompt: { type: Type.STRING, description: "Prompt for image generation for the first slide" }
                   },
-                  gridItems: {
-                    type: Type.ARRAY,
-                    description: "Items for the 'grid' layout",
-                    items: {
-                      type: Type.OBJECT,
-                      properties: {
-                        title: { type: Type.STRING },
-                        description: { type: Type.STRING }
-                      },
-                      required: ["title", "description"]
-                    }
-                  },
-                  script: { type: Type.STRING },
-                  iconCategory: { type: Type.STRING },
-                  imagePrompt: { type: Type.STRING, description: "Prompt for image generation for the first slide" }
-                },
-                required: ["title", "layout", "script"]
-              }
+                  required: ["title", "layout", "script"]
+                }
+              },
+              instagramCaption: { type: Type.STRING }
             },
-            instagramCaption: { type: Type.STRING }
-          },
-          required: ["slides", "instagramCaption"]
+            required: ["slides", "instagramCaption"]
+          }
         }
-      }
-    });
+      }),
+      60000,
+      "Tempo limite excedido ao gerar slides."
+    );
 
     const data = JSON.parse(response.text || "{}") as PresentationData;
 
     // Generate image for the first slide if imagePrompt exists
     if (data.slides[0] && (data.slides[0] as any).imagePrompt) {
-      const imagePrompt = (data.slides[0] as any).imagePrompt;
-      const imageResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: imagePrompt }] },
-      });
-      
-      for (const part of imageResponse.candidates[0].content.parts) {
-        if (part.inlineData) {
-          data.slides[0].imageUrl = `data:image/png;base64,${part.inlineData.data}`;
-          break;
+      try {
+        const imagePrompt = (data.slides[0] as any).imagePrompt;
+        const imageResponse = await withTimeout(
+          ai.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: { parts: [{ text: imagePrompt }] },
+          }),
+          30000,
+          "Tempo limite excedido ao gerar imagem."
+        );
+        
+        for (const part of imageResponse.candidates[0].content.parts) {
+          if (part.inlineData) {
+            data.slides[0].imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+            break;
+          }
         }
+      } catch (imageError) {
+        console.warn("Image generation failed, skipping...", imageError);
       }
     }
 
@@ -166,67 +186,79 @@ Para cada slide, forneça:
 Além disso, crie uma legenda para Instagram baseada no conteúdo geral da apresentação, incluindo hashtags.`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            slides: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING },
-                  layout: { type: Type.STRING, description: "Either 'split' or 'grid'" },
-                  content: {
-                    type: Type.ARRAY,
-                    items: { type: Type.STRING },
-                    description: "Bullet points for 'split' layout"
+    const response = await withTimeout(
+      ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              slides: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    title: { type: Type.STRING },
+                    layout: { type: Type.STRING, description: "Either 'split' or 'grid'" },
+                    content: {
+                      type: Type.ARRAY,
+                      items: { type: Type.STRING },
+                      description: "Bullet points for 'split' layout"
+                    },
+                    gridItems: {
+                      type: Type.ARRAY,
+                      description: "Items for the 'grid' layout",
+                      items: {
+                        type: Type.OBJECT,
+                        properties: {
+                          title: { type: Type.STRING },
+                          description: { type: Type.STRING }
+                        },
+                        required: ["title", "description"]
+                      }
+                    },
+                    script: { type: Type.STRING },
+                    iconCategory: { type: Type.STRING },
+                    imagePrompt: { type: Type.STRING, description: "Prompt for image generation for the first slide" }
                   },
-                  gridItems: {
-                    type: Type.ARRAY,
-                    description: "Items for the 'grid' layout",
-                    items: {
-                      type: Type.OBJECT,
-                      properties: {
-                        title: { type: Type.STRING },
-                        description: { type: Type.STRING }
-                      },
-                      required: ["title", "description"]
-                    }
-                  },
-                  script: { type: Type.STRING },
-                  iconCategory: { type: Type.STRING },
-                  imagePrompt: { type: Type.STRING, description: "Prompt for image generation for the first slide" }
-                },
-                required: ["title", "layout", "script"]
-              }
+                  required: ["title", "layout", "script"]
+                }
+              },
+              instagramCaption: { type: Type.STRING }
             },
-            instagramCaption: { type: Type.STRING }
-          },
-          required: ["slides", "instagramCaption"]
+            required: ["slides", "instagramCaption"]
+          }
         }
-      }
-    });
+      }),
+      60000,
+      "Tempo limite excedido ao gerar slides."
+    );
 
     const data = JSON.parse(response.text || "{}") as PresentationData;
 
     // Generate image for the first slide if imagePrompt exists
     if (data.slides[0] && (data.slides[0] as any).imagePrompt) {
-      const imagePrompt = (data.slides[0] as any).imagePrompt;
-      const imageResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: imagePrompt }] },
-      });
-      
-      for (const part of imageResponse.candidates[0].content.parts) {
-        if (part.inlineData) {
-          data.slides[0].imageUrl = `data:image/png;base64,${part.inlineData.data}`;
-          break;
+      try {
+        const imagePrompt = (data.slides[0] as any).imagePrompt;
+        const imageResponse = await withTimeout(
+          ai.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: { parts: [{ text: imagePrompt }] },
+          }),
+          30000,
+          "Tempo limite excedido ao gerar imagem."
+        );
+        
+        for (const part of imageResponse.candidates[0].content.parts) {
+          if (part.inlineData) {
+            data.slides[0].imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+            break;
+          }
         }
+      } catch (imageError) {
+        console.warn("Image generation failed, skipping...", imageError);
       }
     }
 
