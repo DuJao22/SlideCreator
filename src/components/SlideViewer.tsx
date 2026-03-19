@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { 
   ChevronLeft, ChevronRight, Download, Copy, Loader2, ArrowLeft, Instagram, Sparkles, FileCode,
   Laptop, Briefcase, GraduationCap, HeartPulse, Palette, FlaskConical, MessageSquare, 
-  ShieldCheck, Users, TrendingUp, Lightbulb, Target, Award, LayoutTemplate
+  ShieldCheck, Users, TrendingUp, Lightbulb, Target, Award, LayoutTemplate, Eye, EyeOff
 } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -81,6 +81,7 @@ interface SlideViewerProps {
 export function SlideViewer({ presentation: initialPresentation, project, onBack }: SlideViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [presentation, setPresentation] = useState(initialPresentation);
+  const [cleanView, setCleanView] = useState(false);
 
   useEffect(() => {
     setPresentation(initialPresentation);
@@ -126,6 +127,21 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
     
     navigator.clipboard.writeText(content);
     alert("Conteúdo copiado para a área de transferência!");
+  };
+
+  const handleDownloadImage = async () => {
+    const slideElement = document.querySelector('.slide.active') as HTMLElement;
+    if (!slideElement) return;
+    
+    const canvas = await html2canvas(slideElement, {
+      backgroundColor: null,
+      scale: 2,
+    });
+    
+    const link = document.createElement('a');
+    link.download = `slide-${currentIndex + 1}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
   };
 
   const handleDownloadPDF = async () => {
@@ -204,8 +220,8 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
       '  <title>' + (presentation.slides[0]?.title || 'Apresentação SlideAI') + '</title>\n' +
       '  <style>\n' +
       '    :root { --bg: #050505; --card-bg: rgba(255, 255, 255, 0.05); --accent: #818cf8; --text: #ffffff; --text-muted: #9ca3af; }\n' +
-      '    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: var(--bg); color: var(--text); font-family: \'Inter\', system-ui, -apple-system, sans-serif; overflow: hidden; }\n' +
-      '    .slide { display: none; width: 100vw; height: 100vh; flex-direction: column; padding: 4rem; box-sizing: border-box; position: absolute; top: 0; left: 0; opacity: 0; transition: opacity 0.5s ease; }\n' +
+      '    body, html { margin: 0; padding: 0; width: 100%; background-color: var(--bg); color: var(--text); font-family: \'Inter\', system-ui, -apple-system, sans-serif; }\n' +
+      '    .slide { display: none; width: 100%; min-height: 100vh; flex-direction: column; padding: 4rem; box-sizing: border-box; opacity: 0; transition: opacity 0.5s ease; }\n' +
       '    .slide.active { display: flex; opacity: 1; z-index: 10; }\n' +
       '    .header { margin-bottom: 3rem; }\n' +
       '    .title { font-size: 3.5rem; font-weight: 700; margin: 0; line-height: 1.1; letter-spacing: -0.02em; }\n' +
@@ -332,48 +348,72 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
 
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden bg-[#050505]">
-      {/* Header */}
-      <header className="h-16 border-b border-white/10 flex items-center justify-between px-6 shrink-0 bg-[#0a0a0a]">
-        <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-          <span>Voltar</span>
-        </button>
-        
-        <div className="flex items-center gap-2 md:gap-4">
-          <div className="hidden md:flex items-center gap-2 bg-white/5 p-1 rounded-lg border border-white/10">
-            <LayoutTemplate className="w-4 h-4 text-gray-400 ml-2" />
-            <select 
-              value={selectedModelId}
-              onChange={(e) => setSelectedModelId(e.target.value)}
-              className="bg-transparent text-sm text-white border-none focus:ring-0 py-1 pl-2 pr-8 cursor-pointer appearance-none outline-none"
-            >
-              {DESIGN_MODELS.map(model => (
-                <option key={model.id} value={model.id} className="bg-zinc-900 text-white">
-                  {model.name}
-                </option>
-              ))}
-            </select>
+      {/* Header - Hide if cleanView */}
+      {!cleanView && (
+        <header className="h-16 border-b border-white/10 flex items-center justify-between px-6 shrink-0 bg-[#0a0a0a]">
+          <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+            <span>Voltar</span>
+          </button>
+          
+          <div className="flex items-center gap-2 md:gap-4">
+            <button onClick={() => setCleanView(!cleanView)} className="flex items-center gap-2 px-2 md:px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm font-medium transition-colors">
+              {cleanView ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              <span className="hidden md:inline">{cleanView ? 'Sair do Clean View' : 'Clean View'}</span>
+            </button>
+            <div className="hidden md:flex items-center gap-2 bg-white/5 p-1 rounded-lg border border-white/10">
+              <LayoutTemplate className="w-4 h-4 text-gray-400 ml-2" />
+              <select 
+                value={selectedModelId}
+                onChange={(e) => setSelectedModelId(e.target.value)}
+                className="bg-transparent text-sm text-white border-none focus:ring-0 py-1 pl-2 pr-8 cursor-pointer appearance-none outline-none"
+              >
+                {DESIGN_MODELS.map(model => (
+                  <option key={model.id} value={model.id} className="bg-zinc-900 text-white">
+                    {model.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="hidden md:block w-px h-6 bg-white/10 mx-2"></div>
+            
+            <button onClick={handleCopyContent} className="flex items-center gap-2 px-2 md:px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm font-medium transition-colors">
+              <Copy className="w-4 h-4" />
+              <span className="hidden md:inline">Copiar</span>
+            </button>
+            <button onClick={handleDownloadHTML} className="flex items-center gap-2 px-2 md:px-4 py-2 rounded-lg bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 text-sm font-medium transition-colors">
+              <FileCode className="w-4 h-4" />
+              <span className="hidden md:inline">HTML</span>
+            </button>
+            <button onClick={handleDownloadPDF} disabled={exporting} className="flex items-center gap-2 px-2 md:px-4 py-2 rounded-lg bg-[#00FF00] text-black hover:bg-[#00CC00] text-sm font-semibold transition-colors disabled:opacity-50">
+              {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              <span className="hidden md:inline">PDF</span>
+            </button>
           </div>
-          
-          <div className="hidden md:block w-px h-6 bg-white/10 mx-2"></div>
-          
-          <button onClick={handleCopyContent} className="flex items-center gap-2 px-2 md:px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm font-medium transition-colors">
-            <Copy className="w-4 h-4" />
-            <span className="hidden md:inline">Copiar</span>
-          </button>
-          <button onClick={handleDownloadHTML} className="flex items-center gap-2 px-2 md:px-4 py-2 rounded-lg bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 text-sm font-medium transition-colors">
-            <FileCode className="w-4 h-4" />
-            <span className="hidden md:inline">HTML</span>
-          </button>
-          <button onClick={handleDownloadPDF} disabled={exporting} className="flex items-center gap-2 px-2 md:px-4 py-2 rounded-lg bg-[#00FF00] text-black hover:bg-[#00CC00] text-sm font-semibold transition-colors disabled:opacity-50">
-            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            <span className="hidden md:inline">PDF</span>
-          </button>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
+        {cleanView && (
+          <>
+            <button 
+              onClick={() => setCleanView(false)} 
+              className="fixed top-4 right-4 z-[100] p-3 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-white hover:bg-black/70 transition-all"
+              title="Sair do Clean View"
+            >
+              <EyeOff className="w-6 h-6" />
+            </button>
+            <button 
+              onClick={handleDownloadImage} 
+              className="fixed top-4 right-20 z-[100] p-3 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-white hover:bg-black/70 transition-all"
+              title="Baixar Slide como Imagem"
+            >
+              <Download className="w-6 h-6" />
+            </button>
+          </>
+        )}
         {/* Slide Preview Area */}
         <div className={`${mobileTab !== 'preview' ? 'hidden' : 'flex'} lg:flex flex-1 flex-col items-center justify-center p-4 md:p-8 relative overflow-hidden`}>
           <motion.div 
@@ -468,23 +508,25 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
           </motion.div>
 
           {/* Navigation Controls - Floating Bar */}
-          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-white/10 backdrop-blur-md p-2 rounded-full shadow-2xl border border-white/10 z-50">
-            <button 
-              onClick={handlePrev} 
-              disabled={currentIndex === 0}
-              className="p-4 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-            <span className="font-mono text-sm font-medium px-2">{currentIndex + 1} / {presentation.slides.length}</span>
-            <button 
-              onClick={handleNext} 
-              disabled={currentIndex === presentation.slides.length - 1}
-              className="p-4 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </button>
-          </div>
+          {!cleanView && (
+            <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-white/10 backdrop-blur-md p-2 rounded-full shadow-2xl border border-white/10 z-50">
+              <button 
+                onClick={handlePrev} 
+                disabled={currentIndex === 0}
+                className="p-4 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <span className="font-mono text-sm font-medium px-2">{currentIndex + 1} / {presentation.slides.length}</span>
+              <button 
+                onClick={handleNext} 
+                disabled={currentIndex === presentation.slides.length - 1}
+                className="p-4 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Sidebar: Script & Extras */}
@@ -543,12 +585,14 @@ export function SlideViewer({ presentation: initialPresentation, project, onBack
       </div>
       
       {/* Mobile Tab Bar */}
-      <div className="lg:hidden flex border-t border-white/10 bg-[#0a0a0a]">
-        <button onClick={() => setMobileTab('preview')} className={`flex-1 p-4 text-sm font-medium ${mobileTab === 'preview' ? 'text-white border-t-2 border-[#00FF00]' : 'text-gray-500'}`}>Preview</button>
-        <button onClick={() => setMobileTab('script')} className={`flex-1 p-4 text-sm font-medium ${mobileTab === 'script' ? 'text-white border-t-2 border-[#00FF00]' : 'text-gray-500'}`}>Roteiro</button>
-        <button onClick={() => setMobileTab('caption')} className={`flex-1 p-4 text-sm font-medium ${mobileTab === 'caption' ? 'text-white border-t-2 border-[#00FF00]' : 'text-gray-500'}`}>Instagram</button>
-        <button onClick={() => setMobileTab('edit')} className={`flex-1 p-4 text-sm font-medium ${mobileTab === 'edit' ? 'text-white border-t-2 border-[#00FF00]' : 'text-gray-500'}`}>Editar</button>
-      </div>
+      {!cleanView && (
+        <div className="lg:hidden flex border-t border-white/10 bg-[#0a0a0a]">
+          <button onClick={() => setMobileTab('preview')} className={`flex-1 p-4 text-sm font-medium ${mobileTab === 'preview' ? 'text-white border-t-2 border-[#00FF00]' : 'text-gray-500'}`}>Preview</button>
+          <button onClick={() => setMobileTab('script')} className={`flex-1 p-4 text-sm font-medium ${mobileTab === 'script' ? 'text-white border-t-2 border-[#00FF00]' : 'text-gray-500'}`}>Roteiro</button>
+          <button onClick={() => setMobileTab('caption')} className={`flex-1 p-4 text-sm font-medium ${mobileTab === 'caption' ? 'text-white border-t-2 border-[#00FF00]' : 'text-gray-500'}`}>Instagram</button>
+          <button onClick={() => setMobileTab('edit')} className={`flex-1 p-4 text-sm font-medium ${mobileTab === 'edit' ? 'text-white border-t-2 border-[#00FF00]' : 'text-gray-500'}`}>Editar</button>
+        </div>
+      )}
 
       {/* Hidden container for PDF export */}
       <div className="fixed top-0 left-[-9999px] z-[-50]" ref={slidesRef}>
